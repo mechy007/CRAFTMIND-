@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.util.UUID
@@ -31,15 +32,15 @@ object BedrockPackGenerator {
         val behaviorManifest = JSONObject().put("format_version", 2).put("header",
             JSONObject().put("name", "$name Behavior Pack").put("description", "Generated offline by CraftMind Studio")
                 .put("uuid", behaviorHeader).put("version", version()).put("min_engine_version", engineVersion())
-        ).put("modules", org.json.JSONArray().put(
+        ).put("modules", JSONArray().put(
             JSONObject().put("type", "data").put("uuid", behaviorModule).put("version", version())
-        )).put("dependencies", org.json.JSONArray().put(
+        )).put("dependencies", JSONArray().put(
             JSONObject().put("uuid", resourceHeader).put("version", version())
         )).toString(2)
         val resourceManifest = JSONObject().put("format_version", 2).put("header",
             JSONObject().put("name", "$name Resource Pack").put("description", "Generated offline by CraftMind Studio")
                 .put("uuid", resourceHeader).put("version", version()).put("min_engine_version", engineVersion())
-        ).put("modules", org.json.JSONArray().put(
+        ).put("modules", JSONArray().put(
             JSONObject().put("type", "resources").put("uuid", resourceModule).put("version", version())
         )).toString(2)
         val item = JSONObject().put("format_version", "1.21.10").put("minecraft:item",
@@ -59,22 +60,28 @@ object BedrockPackGenerator {
             .put("texture_name", "atlas.items").put("texture_data",
                 JSONObject().put(id, JSONObject().put("textures", "textures/items/$id"))
             ).toString(2)
-        val output = ByteArrayOutputStream()
-        ZipOutputStream(output).use { zip ->
-            zip.addText("BehaviorPack/manifest.json", behaviorManifest)
-            zip.addText("BehaviorPack/items/$id.json", item)
-            zip.addText("ResourcePack/manifest.json", resourceManifest)
-            zip.addText("ResourcePack/textures/item_texture.json", atlas)
-            zip.addBytes("ResourcePack/textures/items/$id.png", createIcon())
+
+        // Bedrock .mcaddon archives contain separate .mcpack archives.
+        val behaviorPack = archive {
+            addText("manifest.json", behaviorManifest)
+            addText("items/$id.json", item)
         }
-        return output.toByteArray()
+        val resourcePack = archive {
+            addText("manifest.json", resourceManifest)
+            addText("textures/item_texture.json", atlas)
+            addBytes("textures/items/$id.png", createIcon())
+        }
+        return archive {
+            addBytes("$name Behavior.mcpack", behaviorPack)
+            addBytes("$name Resources.mcpack", resourcePack)
+        }
     }
 
     private fun safeId(value: String): String =
         value.lowercase().replace(Regex("[^a-z0-9_]"), "_").trim('_').take(32).ifBlank { "custom_item" }
     private fun uuid() = UUID.randomUUID().toString()
-    private fun version() = org.json.JSONArray().put(1).put(0).put(0)
-    private fun engineVersion() = org.json.JSONArray().put(1).put(20).put(80)
+    private fun version() = JSONArray().put(1).put(0).put(0)
+    private fun engineVersion() = JSONArray().put(1).put(20).put(80)
 
     private fun createIcon(): ByteArray {
         val bitmap = Bitmap.createBitmap(16, 16, Bitmap.Config.ARGB_8888)
@@ -101,6 +108,11 @@ object BedrockPackGenerator {
         return stream.toByteArray()
     }
 
+    private fun archive(block: ZipOutputStream.() -> Unit): ByteArray {
+        val bytes = ByteArrayOutputStream()
+        ZipOutputStream(bytes).use { it.block() }
+        return bytes.toByteArray()
+    }
     private fun ZipOutputStream.addText(path: String, value: String) = addBytes(path, value.toByteArray(Charsets.UTF_8))
     private fun ZipOutputStream.addBytes(path: String, bytes: ByteArray) {
         putNextEntry(ZipEntry(path))
