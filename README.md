@@ -1,23 +1,33 @@
-# CraftMind
+# CraftMind Studio
 
-CraftMind is the separate AI brain for CraftNode. This first milestone provides a transport-neutral Kotlin/JVM core, a versioned `craftmind.bridge.v1` contract, and safety-first validation of tool proposals.
+CraftMind Studio is an Android-first, standalone Minecraft Bedrock add-on creator. It is being developed separately from CraftNode; integration can be added later through a versioned bridge.
 
-## Current milestone
-- Kotlin/JVM targeting Java 17.
-- Deterministic offline demo provider; no API key or network required.
-- Read-only tools only: `server.status`, `server.logs.explain`, `world.list`, `world.get`, and `players.list`.
-- Tests for protocol validation, allowlists, oversized input, provider failure, and attempted write-tool injection.
-- **Not connected to CraftNode yet and does not control a live server.** CraftNode must execute tools and verify the actual state.
+## MVP (0.1.0)
+- Native Android app built with Kotlin and Jetpack Compose.
+- Offline prompt-to-template flow for a starter custom item.
+- Exports a Bedrock .mcaddon containing behavior and resource packs.
+- Generates a simple 16×16 item texture locally.
+- No account, API key, or paid AI provider required for this prototype.
+
+## Important limitations
+- This first version is a deterministic template generator, not yet an LLM-powered AI creator.
+- The initial item template maps a few words to item stats. It does not implement arbitrary behavior such as lightning strikes, custom mobs, animations, or scripts yet.
+- Generated packs must be tested in the user's target Minecraft Bedrock version. A successful APK build is not proof that every pack imports or behaves correctly.
+- AI providers will be optional and replaceable. Never embed a shared private API key in the APK.
+- This project does not control or modify a live CraftNode server.
 
 ## Build
-Requires JDK 17+ and Gradle 8.10+:
+Requires JDK 17+, Android SDK 35, and Gradle 8.10.2 or compatible.
 
-```sh
-gradle test
-```
+    gradle test
+    gradle :app:assembleDebug
 
-## Safety boundary
-The core never executes shell or server-console commands, never claims a server action succeeded, and never stores provider credentials. CraftNode remains authoritative for IDs, capabilities, confirmation, execution, and verification. Future providers must use user-configured credentials, not a shared secret embedded in the APK.
+The debug APK is produced at app/build/outputs/apk/debug/app-debug.apk.
 
-## Next milestone
-Add a provider adapter behind `MindProvider`, then implement CraftNode's in-process bridge against real server controllers. Do not enable write tools until each action has controller tests and explicit confirmation.
+## Roadmap
+1. Build and install the native app; verify export/import on Bedrock Android.
+2. Add pack validation, deterministic IDs, and tests for generated archive structure.
+3. Add more item templates and genuine Script API behavior.
+4. Add an optional provider interface with user-supplied credentials/free-tier choices.
+5. Add prompt planning, code generation, schema validation, and iterative repair.
+6. Add preview, saved projects, import/export management, and a versioned CraftNode bridge after the standalone app is reliable.
