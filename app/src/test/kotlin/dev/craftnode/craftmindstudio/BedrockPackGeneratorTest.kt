@@ -51,7 +51,7 @@ class BedrockPackGeneratorTest {
 
     @Test
     fun itemDefinitionMatchesSanitizedNameAndPromptStats() {
-        val outer = unzip(BedrockPackGenerator.generate("lightning sword with durable durability", "!!!"))
+        val outer = unzip(BedrockPackGenerator.generate("lightning sword with durable durability", ""))
         val behavior = unzip(outer.getValue("Custom Item Behavior.mcpack"))
         val item = JSONObject(behavior.getValue("items/custom_item.json").decodeToString())
             .getJSONObject("minecraft:item")
@@ -68,9 +68,10 @@ class BedrockPackGeneratorTest {
         val png = resources.getValue("textures/items/miner.png")
         val bitmap = BitmapFactory.decodeByteArray(png, 0, png.size)
         assertNotNull(bitmap)
-        assertEquals(16, bitmap.width)
-        assertEquals(16, bitmap.height)
-        bitmap.recycle()
+        val decoded = requireNotNull(bitmap)
+        assertEquals(16, decoded.width)
+        assertEquals(16, decoded.height)
+        decoded.recycle()
     }
 
     private fun unzip(bytes: ByteArray): Map<String, ByteArray> {
